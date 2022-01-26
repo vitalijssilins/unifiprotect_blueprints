@@ -1,5 +1,7 @@
 blueprint:
   name: UniFi Protect Smart Detection Notifications
+  domain: automation
+  source_url: https://github.com/AngellusMortis/unifiprotect_blueprints/blob/main/blueprints/automation/unifiprotect/push_notification_smart_event.yaml
   description: |
     ## UniFi Protect Smart Detection Notifications
 
@@ -46,7 +48,6 @@ blueprint:
     [7]: https://companion.home-assistant.io/docs/notifications/actionable-notifications/
     [8]: https://www.home-assistant.io/integrations/unifiprotect/
     [9]: https://www.home-assistant.io/integrations/telegram/
-  domain: automation
   input:
     smart_entity:
       name: Smart Dection Entity

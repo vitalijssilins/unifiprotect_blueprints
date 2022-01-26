@@ -1,5 +1,7 @@
 blueprint:
   name: UniFi Protect Motion Notifications
+  domain: automation
+  source_url: https://raw.githubusercontent.com/AngellusMortis/unifiprotect_blueprints/main/blueprints/automation/unifiprotect/push_notification_motion_event.yaml
   description: |
     ## UniFi Protect Motion Notifications
 
@@ -45,7 +47,6 @@ blueprint:
     [7]: https://companion.home-assistant.io/docs/notifications/actionable-notifications/
     [8]: https://www.home-assistant.io/integrations/unifiprotect/
     [9]: https://www.home-assistant.io/integrations/telegram/
-  domain: automation
   input:
     motion_entity:
       name: Motion Entity

@@ -1,5 +1,7 @@
 blueprint:
   name: UniFi Protect Dynamic Doorbell
+  domain: automation
+  source_url: https://raw.githubusercontent.com/AngellusMortis/unifiprotect_blueprints/main/blueprints/automation/unifiprotect/dynamic_doorbell.yaml
   description: |
     ## UniFi Protect Dynamic Doorbell
 
@@ -36,7 +38,6 @@ blueprint:
 
     [1]: https://www.home-assistant.io/integrations/unifiprotect/
     [2]: https://www.home-assistant.io/docs/configuration/templating/
-  domain: automation
   input:
     doorbell:
       name: Doorbell Entity
