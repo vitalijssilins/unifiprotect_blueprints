@@ -10,7 +10,7 @@ Below are some officially maintained blueprints for the UniFi Protect integratio
 To take full effect of this automation blueprint, your Home Assistant instance needs some setup beforehand.
 
 * A UniFi Protect NVR running on a UDM Pro, UNVR or other Protect Console
-* The [unifiprotect](https://community.home-assistant.io/t/custom-component-unifi-protect/158041) integration
+* Home Assistant 2022.2.0 or newer running the [UniFi Protect integration](https://www.home-assistant.io/integrations/unifiprotect/)
 * A UniFi camera pair with your NVR
   * (Smart/Motion Blueprint only): If you want to filter smart detections, you need a Smart Detection capable camera. This is any G4 series camera _except_ the EA G4 Instant.
   * (Doorbell Blueprint only): Your camera must have a chime (like the G4 Doorbell)
