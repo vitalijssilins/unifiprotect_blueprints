@@ -57,7 +57,7 @@ blueprint:
         entity:
           integration: unifiprotect
           domain: sensor
-          device_class: occupancy
+          device_class: unifiprotect__detection
     objects:
       name: (Optional) Smart Detections
       description: >
