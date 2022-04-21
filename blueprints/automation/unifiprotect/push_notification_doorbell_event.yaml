@@ -250,7 +250,7 @@ variables:
   input_wait_tts: !input wait_tts
   input_tts_target: !input tts_target
   # automation data
-  camera_entities: '[{% for eid in device_entities(device_id(input_doorbell)) %}{%if eid.startswith(''camera'') and not is_state(eid, ''unavailable'') %}"{{ eid }}",{% endif %}{% endfor %}]'
+  camera_entities: '[{% for eid in device_entities(device_id(input_doorbell)) %}{%if eid.startswith(''camera'') and not ''package'' in eid and not is_state(eid, ''unavailable'') %}"{{ eid }}",{% endif %}{% endfor %}]'
   media_entities: '[{% for eid in device_entities(device_id(input_doorbell)) %}{%if eid.startswith(''media_player'') and not is_state(eid, ''unavailable'') %}"{{ eid }}",{% endif %}{% endfor %}]'
   # automation variables
   lovelace_view: "{{ input_lovelace_view | trim }}"

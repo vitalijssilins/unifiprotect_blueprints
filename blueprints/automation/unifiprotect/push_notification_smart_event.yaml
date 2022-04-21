@@ -218,7 +218,7 @@ variables:
   input_time_format: !input time_format
   input_presence_filter: !input presence_filter
   # automation data
-  camera_entities: '[{% for eid in device_entities(device_id(input_smart_entity)) %}{%if eid.startswith(''camera'') and not is_state(eid, ''unavailable'') %}"{{ eid }}",{% endif %}{% endfor %}]'
+  camera_entities: '[{% for eid in device_entities(device_id(input_smart_entity)) %}{%if eid.startswith(''camera'' and not ''package'' in eid and not is_state(eid, ''unavailable'') %}"{{ eid }}",{% endif %}{% endfor %}]'
   smart_entities: '[{% for eid in device_entities(device_id(input_smart_entity)) %}{%if eid.startswith(''sensor'') and is_state_attr(eid, "device_class", "occupancy") %}"{{ eid }}",{% endif %}{% endfor %}]'
   smart_detect_objs: "{{ (input_objects | lower).split(',') | map('trim') | list | select('in', ['person', 'vehicle']) | list }}"
   # automation variables
