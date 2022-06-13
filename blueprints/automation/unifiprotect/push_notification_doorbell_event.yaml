@@ -23,7 +23,7 @@ blueprint:
       - Silence timer for muting notifications via Actionable Notification (docs: [HTML5][6], [Mobile][7])
       - Configurable HA Internal / External Base URLs
       - Configurable lovelace view from notification
-      - Optional Actionable Notification to unlock door entity for camera
+      - Optional Actionable Notification to unlock door entity or open gate for camera
       - Optional TTS messages (requires [TTS integration][10] to be configured):
         - TTS message to play through the doorbell when unlocking door
         - Actionable Notification to play audio message through doorbell to respond to guest.
@@ -42,9 +42,9 @@ blueprint:
 
     ### Caveat About Actionable Notifications Limits
 
-    HTML5 Push notification can only have a max of 2 actionable notifications. If you enable Silence, Unlock Door and Respond, Silence will not appear.
+    HTML5 Push notification can only have a max of 2 actionable notifications. If you enable Silence, Unlock Door, Open Gate and Respond, Silence will not appear.
 
-    Android Push notifications likewise have a limit of 3 actionable notifications. So if you have Open Camera, Silence, Unlock Door and Respond, Silence will not appear.
+    Android Push notifications likewise have a limit of 3 actionable notifications. So if you have Open Camera, Silence, Unlock Door, Open Gate and Respond, Silence will not appear.
 
     iOS is not affected by the limit (limit = 10).
 
@@ -78,6 +78,16 @@ blueprint:
       selector:
         entity:
           domain: lock
+    cover_entity:
+      name: (Optional) Cover (Gate) Entity
+      description: >
+        The Cover entity to provide an actionable notification to open gate on doorbell
+        ring. The time interval you have to respond to the action is controlled
+        by "Cooldown". Short Cooldown timers may prevent you from opening the gate.
+      default: ""
+      selector:
+        entity:
+          domain: cover 
     tts_target:
       name: (Optional) TTS Service
       description: >
@@ -89,7 +99,7 @@ blueprint:
     lock_tts:
       name: (Optional) Unlock TTS message
       description: >
-        TTS Message for play through doorbell when door is unlocked.
+        TTS Message for play through doorbell when door is unlocked or gate opened.
       default: ""
       selector:
         text:
@@ -242,6 +252,7 @@ variables:
   input_notify_telegram: !input notify_telegram
   input_silence_timer: !input silence_timer
   input_lock_entity: !input lock_entity
+  input_cover_entity: !input cover_entity
   input_send_mobile: !input send_mobile
   input_send_html5: !input send_html5
   input_send_telegram: !input send_telegram
@@ -257,6 +268,7 @@ variables:
   camera_entity_id: "{{ camera_entities | default([None]) | first }}"
   media_entity_id: "{{ media_entities | default([None]) | first }}"
   lock_entity_id: "{{ input_lock_entity or '' }}"
+  cover_entity_id: "{{ input_cover_entity or '' }}"
   trigger_time: |
     {% if states[input_doorbell] == None %}
       None
@@ -291,6 +303,7 @@ variables:
     {% endif %}
   silence_action: "silence-{{ input_doorbell }}"
   unlock_action: "unlock-{{ lock_entity_id }}"
+  uncover_action: "uncover-{{ cover_entity_id }}"
   tts_action: "tts-{{ input_doorbell }}"
   lock_tts_enabled: "{{ input_tts_target != '' and input_lock_tts != '' and media_entity_id != None }}"
   wait_tts_enabled: "{{ input_tts_target != '' and input_wait_tts != '' and media_entity_id != None }}"
@@ -313,6 +326,7 @@ action:
                 Camera: `{{ camera_entity_id }}`
                 Media Player: `{{ media_entity_id }}`
                 Lock: `{{ lock_entity_id }}`
+                Cover: `{{ cover_entity_id }}`
                 Lock TTS: `{{ input_lock_tts }}` | `{{ lock_tts_enabled }}`
                 Wait TTS: `{{ input_wait_tts }}` | `{{ wait_tts_enabled }}`
                 TTS Service: `{{ input_tts_target }}`
@@ -356,6 +370,9 @@ action:
                   {% if lock_entity_id != "" %}
                   { "action": "{{ unlock_action }}", "title": "Unlock Door" },
                   {% endif %}
+                  {% if cover_entity_id != "" %}
+                  { "action": "{{ uncover_action }}", "title": "Open Gate" },
+                  {% endif %}
                   {% if wait_tts_enabled %}
                   { "action": "{{ tts_action }}", "title": "Respond" },
                   {% endif %}
@@ -379,6 +396,9 @@ action:
                   [
                   {% if lock_entity_id != "" %}
                   { "action": "{{ unlock_action }}", "title": "Unlock Door" },
+                  {% endif %}
+                  {% if cover_entity_id != "" %}
+                  { "action": "{{ uncover_action }}", "title": "Open Gate" },
                   {% endif %}
                   {% if wait_tts_enabled %}
                   { "action": "{{ tts_action }}", "title": "Respond" },
@@ -406,6 +426,9 @@ action:
                   "inline_keyboard": [
                   {% if lock_entity_id != "" %}
                     "Unlock Door:/{{ unlock_action }}",
+                  {% endif %}
+                  {% if cover_entity_id != "" %}
+                    "Open Gate:/{{ uncover_action }}",
                   {% endif %}
                   {% if wait_tts_enabled %}
                     "Respond:/{{ tts_action }}",
@@ -440,6 +463,18 @@ action:
         event_type: telegram_callback
         event_data:
           data: "/{{ unlock_action }}"
+      - platform: event
+        event_type: mobile_app_notification_action
+        event_data:
+          action: "{{ uncover_action }}"
+      - platform: event
+        event_type: html5_notification.clicked
+        event_data:
+          action: "{{ uncover_action }}"
+      - platform: event
+        event_type: telegram_callback
+        event_data:
+          data: "/{{ uncover_action }}"
       - platform: event
         event_type: mobile_app_notification_action
         event_data:
@@ -498,6 +533,39 @@ action:
                   - service: telegram_bot.answer_callback_query
                     data:
                       message: 'Unlocked door{% if lock_tts_enabled %} and played "{{ input_lock_tts }}" TTS message{% endif %}'
+                      callback_query_id: "{{ wait.trigger.event.data.id }}"
+      - conditions: "{{ (wait.trigger.event.data.action == uncover_action or wait.trigger.event.data.data.endswith(uncover_action)) and cover_entity_id != '' }}"
+        sequence:
+          - choose:
+              - conditions: "{{ input_debug_enabled }}"
+                sequence:
+                  - service: notify.persistent_notification
+                    data:
+                      title: "Debug: {{ notification_title }}"
+                      message: "Open Gate `{{ cover_entity_id }}`"
+          - service: cover.open_cover
+            data:
+              entity_id: "{{ cover_entity_id }}"
+          - choose:
+              - conditions: "{{ lock_tts_enabled }}"
+                sequence:
+                  - choose:
+                      - conditions: "{{ input_debug_enabled }}"
+                        sequence:
+                          - service: notify.persistent_notification
+                            data:
+                              title: "Debug: {{ notification_title }}"
+                              message: "Sending TTS: {{ input_lock_tts }}."
+                  - service: tts.{{ input_tts_target }}
+                    data:
+                      entity_id: "{{ media_entity_id }}"
+                      message: "{{ input_lock_tts }}"
+          - choose:
+              - conditions: "{{ input_send_telegram }}"
+                sequence:
+                  - service: telegram_bot.answer_callback_query
+                    data:
+                      message: 'Opened gate {% if lock_tts_enabled %} and played "{{ input_lock_tts }}" TTS message{% endif %}'
                       callback_query_id: "{{ wait.trigger.event.data.id }}"
       - conditions: "{{ (wait.trigger.event.data.action == silence_action or wait.trigger.event.data.data.endswith(silence_action)) }}"
         sequence:
