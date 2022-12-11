@@ -44,6 +44,14 @@ blueprint:
           integration: unifiprotect
           domain: binary_sensor
           multiple: true
+    presence_filter:
+      name: (Optional) Presence Filter
+      description: Only notify if selected presence entity is not "home".
+      default: ""
+      selector:
+        entity:
+          domain: device_tracker
+          multiple: true
     notify_target_app:
       name: (Optional) Notification Target (Mobile App)
       description: >
@@ -166,6 +174,12 @@ trigger:
     entity_id: !input obj_sensor
     from: "off"
     to: "on"
+
+condition:
+  - condition: state
+    entity_id: !input presence_filter
+    match: all
+    state: "not_home"
 
 action:
   - service: "{{ input_notify_target_app }}"

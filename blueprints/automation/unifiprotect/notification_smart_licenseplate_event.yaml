@@ -44,6 +44,14 @@ blueprint:
           integration: unifiprotect
           domain: sensor
           multiple: true
+    presence_filter:
+      name: (Optional) Presence Filter
+      description: Only notify if selected presence entity is not "home".
+      default: ""
+      selector:
+        entity:
+          domain: device_tracker
+          multiple: true
     notify_target_app:
       name: (Optional) Notification Target (Mobile App)
       description: >
@@ -133,6 +141,7 @@ variables:
   input_notify_target_app: !input notify_target_app
   input_silence_timer: !input silence_timer
   input_time_format: !input time_format
+
   input_debug_license_plate: !input debug_license_plate
   input_debug_event_id: !input debug_event_id
   input_cooldown: !input cooldown
@@ -175,6 +184,12 @@ trigger:
     entity_id: !input licenseplate_sensor
     from: "none"
     not_to: "unavailable"
+
+condition:
+  - condition: state
+    entity_id: !input presence_filter
+    match: all
+    state: "not_home"
 
 action:
   - service: "{{ input_notify_target_app }}"
