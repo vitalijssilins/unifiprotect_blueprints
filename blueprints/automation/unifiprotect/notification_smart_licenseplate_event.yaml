@@ -141,18 +141,12 @@ variables:
   input_notify_target_app: !input notify_target_app
   input_silence_timer: !input silence_timer
   input_time_format: !input time_format
-
+  input_presence_filter: !input presence_filter
   input_debug_license_plate: !input debug_license_plate
   input_debug_event_id: !input debug_event_id
   input_cooldown: !input cooldown
   lovelace_view: "{{ input_lovelace_view | trim }}"
   is_manual: "{{ 'from_state' not in trigger }}"
-  notification_channel: |
-    {% if is_manual %}
-      Manual {{ input_channel }}
-    {% else %}
-      {{ input_channel }}
-    {% endif %}
   entity_id: "{% if is_manual %}{{ input_licenseplate[0] }}{% else %}{{ trigger.entity_id }}{% endif %}"
   device_id: "{{ device_id(entity_id) }}"
   device_name: "{{ device_attr(device_id, 'name') }}"
@@ -166,6 +160,12 @@ variables:
       None
     {% else %}
       {{ as_local(states[entity_id].last_changed).strftime(input_time_format) }}
+    {% endif %}
+  notification_channel: |
+    {% if is_manual %}
+      Manual {{ input_channel }}
+    {% else %}
+      {{ input_channel }}
     {% endif %}
   notification_title: "{{ device_name }}: License Plate Detected"
   notification_tag: "{{ notification_channel.lower().replace(' ', '-') }}"
@@ -186,10 +186,7 @@ trigger:
     not_to: "unavailable"
 
 condition:
-  - condition: state
-    entity_id: !input presence_filter
-    match: all
-    state: "not_home"
+  - "{{ not input_presence_filter or (input_presence_filter | select('is_state', 'home') | list | count) == 0 }}"
 
 action:
   - service: "{{ input_notify_target_app }}"
