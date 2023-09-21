@@ -6,7 +6,7 @@ blueprint:
     ## UniFi Protect Motion / Smart Detection Notifications
 
     This blueprint will send push notifications to a Home Assistant mobile app when a camera detections motion or a
-    smart detection.
+    smart detection.    
 
     ### Required Settings
 
@@ -15,10 +15,15 @@ blueprint:
     ### Optional Settings
 
       - Notification target for the [mobile app notification target][1].
+      - Presence filter - list of mobile phones or other entities that should be within the "home" zone
+      - Alarmo integration entity to check arm states.
+      - Alarmo arm states when the notifications should work. 
       - Time formatting strings. Timestamp is injected into the notification in case the notification is delay.
       - Cooldown before sending another notification
       - Silence timer for muting notifications via Actionable Notification (docs: [Mobile][2])
       - Configurable lovelace view from notification
+
+      Presence filter works together with Alarmo (you can choose presence filter or Alarmo, you can choose both or nothing at all).
 
     ### Requirements
 
@@ -51,6 +56,26 @@ blueprint:
       selector:
         entity:
           domain: device_tracker
+          multiple: true
+    alarmo_entity:
+      name: Alarmo Entity
+      description: The Alarmo entity to monitor for state changes.
+      selector:
+        entity:
+          domain: alarm_control_panel
+          integration: alarmo
+    alarmo_arm_states:
+      name: Alarmo Arm States
+      description: Select the Alarmo arm states for which you want to receive notifications.
+      default: []
+      selector:
+        select:
+          options:
+            - armed_away
+            - armed_home
+            - armed_night
+            - armed_vacation
+            - armed_custom_bypass
           multiple: true
     notify_target_app:
       name: (Optional) Notification Target (Mobile App)
@@ -135,6 +160,8 @@ variables:
   input_silence_timer: !input silence_timer
   input_time_format: !input time_format
   input_presence_filter: !input presence_filter
+  input_alarmo_entity: !input alarmo_entity
+  input_alarmo_arm_states: !input alarmo_arm_states
   input_debug_event_id: !input debug_event_id
   input_cooldown: !input cooldown
   lovelace_view: "{{ input_lovelace_view | trim }}"
@@ -177,7 +204,32 @@ trigger:
     to: "on"
 
 condition:
-  - "{{ not input_presence_filter or (input_presence_filter | select('is_state', 'home') | list | count) == 0 }}"
+  condition: or
+  conditions:
+    - condition: and
+      conditions:
+        - condition: template
+          value_template: "{{ input_alarmo_entity is defined and input_alarmo_entity != '' }}"
+        - condition: template
+          value_template: "{{ states(input_alarmo_entity) in input_alarmo_arm_states }}"
+        - condition: template
+          value_template: "{{ not input_presence_filter or (input_presence_filter | select('is_state', 'home') | list | count) == 0 }}"
+    - condition: and
+      conditions:
+        - condition: template
+          value_template: "{{ input_alarmo_entity is not defined or input_alarmo_entity == '' }}"
+        - condition: template
+          value_template: "{{ not input_presence_filter or (input_presence_filter | select('is_state', 'home') | list | count) == 0 }}"
+    - condition: and
+      conditions:
+        - condition: template
+          value_template: "{{ input_alarmo_entity is defined and input_alarmo_entity != '' }}"
+        - condition: template
+          value_template: "{{ states(input_alarmo_entity) in input_alarmo_arm_states }}"
+    - condition: and
+      conditions:
+        - condition: template
+          value_template: "{{ not input_presence_filter or (input_presence_filter | select('is_state', 'home') | list | count) == 0 }}"
 
 action:
   - service: "{{ input_notify_target_app }}"
