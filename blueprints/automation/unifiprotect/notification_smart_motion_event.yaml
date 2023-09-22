@@ -18,23 +18,23 @@ blueprint:
       - Presence filter - list of mobile phones or other entities that should be within the "home" zone
       - Alarmo integration entity to check arm states.
       - Alarmo arm states when the notifications should work. 
-      - Time formatting strings. Timestamp is injected into the notification in case the notification is delay.
+      - Time formatting strings. A timestamp is injected into the notification in case the notification is delayed.
       - Cooldown before sending another notification
       - Silence timer for muting notifications via Actionable Notification (docs: [Mobile][2])
       - Configurable lovelace view from notification
 
-      Presence filter works together with Alarmo (you can choose presence filter or Alarmo, you can choose both or nothing at all).
+      The presence filter works together with Alarmo (you can choose presence filter or Alarmo, you can choose both or nothing at all).
 
     ### Requirements
 
     To take full effect of this automation blueprint, your Home Assistant instance needs some setup beforehand.
 
-    - An UniFi Protect camera. Only cameras that are capable of smart detections (G4, AI or G5 Series cameras) will have objection detection sensors.
+    - An UniFi Protect camera. Only cameras that are capable of smart detections (G4, AI, or G5 Series cameras) will have objection detection sensors.
     - A valid HTTPS certificate and [properly configured external URL][3]
       - If you are using Home Assistant Cloud, this is already set up for you.
-      - If this is not setup correctly, the actionable notifications and attachments will not appear in the notifications.
+      - If this is not set up correctly, the actionable notifications and attachments will not appear in the notifications.
       - You do not need your _whole_ Home Assistant to be publicly accessible. Only the paths `/api/unifiprotect/*` and
-        `/api/webhook/*` need to be accessible outside of your network.
+        `/api/webhook/*` needs to be accessible outside of your network.
 
     [1]: https://companion.home-assistant.io/docs/notifications/notifications-basic#sending-notifications-to-multiple-devices
     [2]: https://companion.home-assistant.io/docs/notifications/actionable-notifications/
@@ -122,7 +122,7 @@ blueprint:
       name: (Optional) Silence Notifications
       description: >
         How long to silence notifications for this camera when requested as part of the
-        actionable notification. The time interval you have to respond to the slient
+        actionable notification. The time interval you have to respond to the silent
         action is controlled by "Cooldown". Short Cooldown timers may prevent you from
         silencing.
       default: 30
@@ -134,7 +134,7 @@ blueprint:
     lovelace_view:
       name: (Optional) Lovelace View
       description: |
-        Home Assistant Lovelace view to open when clicking notification.
+        Home Assistant Lovelace view to open when clicking the notification.
         If left blank, URI Notification actions will not be generated.
       default: ""
       selector:
@@ -142,7 +142,7 @@ blueprint:
     debug_event_id:
       name: (Optional) Debug Event ID
       description: >
-        Debug Event ID for UniFi Protect to use for when manually triggering automation.
+        Debug Event ID for UniFi Protect to use when manually triggering automation.
         Will be used to generate a thumbnail for testing notifications.
       default: ""
       selector:
@@ -204,32 +204,20 @@ trigger:
     to: "on"
 
 condition:
-  condition: or
+  condition: and
   conditions:
-    - condition: and
-      conditions:
-        - condition: template
-          value_template: "{{ input_alarmo_entity is defined and input_alarmo_entity != '' }}"
-        - condition: template
-          value_template: "{{ states(input_alarmo_entity) in input_alarmo_arm_states }}"
-        - condition: template
-          value_template: "{{ not input_presence_filter or (input_presence_filter | select('is_state', 'home') | list | count) == 0 }}"
-    - condition: and
+    - condition: or
       conditions:
         - condition: template
           value_template: "{{ input_alarmo_entity is not defined or input_alarmo_entity == '' }}"
         - condition: template
-          value_template: "{{ not input_presence_filter or (input_presence_filter | select('is_state', 'home') | list | count) == 0 }}"
-    - condition: and
-      conditions:
-        - condition: template
-          value_template: "{{ input_alarmo_entity is defined and input_alarmo_entity != '' }}"
-        - condition: template
           value_template: "{{ states(input_alarmo_entity) in input_alarmo_arm_states }}"
-    - condition: and
+    - condition: or
       conditions:
         - condition: template
-          value_template: "{{ not input_presence_filter or (input_presence_filter | select('is_state', 'home') | list | count) == 0 }}"
+          value_template: "{{ input_presence_filter is not defined or input_presence_filter == '' }}"
+        - condition: template
+          value_template: "{{ (input_presence_filter | select('is_state', 'home') | list | count) == 0 }}"
 
 action:
   - service: "{{ input_notify_target_app }}"
