@@ -17,7 +17,7 @@ blueprint:
       - Notification target for the [mobile app notification target][1].
       - Presence filter - list of mobile phones or other entities that should be within the "home" zone
       - Alarm entity to check arm states.
-      - Alarm arm states when the notifications should work.
+      - Alarm arm states when the notifications should work. Required if alarm entity is selected.
       - Time formatting strings. Timestamp is injected into the notification in case the notification is delay.
       - Cooldown before sending another notification
       - Silence timer for muting notifications via Actionable Notification (docs: [Mobile][2])
@@ -65,9 +65,9 @@ blueprint:
           domain: alarm_control_panel
 
     alarm_arm_states:
-      name: (Optional) Alarm Arm States
-      description: Select the alarm arm states for which you want to receive notifications.
-      default: []
+      name: Alarm Arm States
+      description: Select the alarm arm states for which you want to receive notifications. Required if an Alarm Entity is set.
+      default: ["armed_away", "armed_home", "armed_night", "armed_vacation", "armed_custom_bypass"]
       selector:
         select:
           options:
@@ -206,18 +206,40 @@ trigger:
 condition:
   condition: and
   conditions:
+    # Ensure either input_alarm_entity is not provided or both are provided and state is valid.
     - condition: or
       conditions:
+        # Case when alarm entity is not provided (making it optional)
         - condition: template
           value_template: "{{ input_alarm_entity is not defined or input_alarm_entity == '' }}"
-        - condition: template
-          value_template: "{{ states(input_alarm_entity) in input_alarm_arm_states }}"
+        
+        # Case when both are provided and state is valid
+        - condition: and
+          conditions:
+            # Ensure alarm entity is provided
+            - condition: template
+              value_template: "{{ input_alarm_entity is defined and input_alarm_entity != '' }}"
+            
+            # Ensure alarm arm states is provided and has items
+            - condition: template
+              value_template: "{{ input_alarm_arm_states is defined and input_alarm_arm_states | length > 0 }}"
+            
+            # Ensure current state of alarm entity is in the selected states
+            - condition: template
+              value_template: "{{ states(input_alarm_entity) in input_alarm_arm_states }}"
+
+    # Handle presence filter logic
     - condition: or
       conditions:
+        # Case when presence filter is not provided (making it optional)
         - condition: template
           value_template: "{{ input_presence_filter is not defined or input_presence_filter == '' }}"
+        
+        # Ensure no user is home if presence filter is defined
         - condition: template
           value_template: "{{ (input_presence_filter | select('is_state', 'home') | list | count) == 0 }}"
+
+
 
 action:
   - service: "{{ input_notify_target_app }}"
