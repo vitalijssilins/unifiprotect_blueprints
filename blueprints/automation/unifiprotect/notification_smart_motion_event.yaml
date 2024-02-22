@@ -67,7 +67,14 @@ blueprint:
     alarm_arm_states:
       name: Alarm Arm States
       description: Select the alarm arm states for which you want to receive notifications. Required if an Alarm Entity is set.
-      default: ["armed_away", "armed_home", "armed_night", "armed_vacation", "armed_custom_bypass"]
+      default:
+        [
+          "armed_away",
+          "armed_home",
+          "armed_night",
+          "armed_vacation",
+          "armed_custom_bypass",
+        ]
       selector:
         select:
           options:
@@ -212,18 +219,18 @@ condition:
         # Case when alarm entity is not provided (making it optional)
         - condition: template
           value_template: "{{ input_alarm_entity is not defined or input_alarm_entity == '' }}"
-        
+
         # Case when both are provided and state is valid
         - condition: and
           conditions:
             # Ensure alarm entity is provided
             - condition: template
               value_template: "{{ input_alarm_entity is defined and input_alarm_entity != '' }}"
-            
+
             # Ensure alarm arm states is provided and has items
             - condition: template
               value_template: "{{ input_alarm_arm_states is defined and input_alarm_arm_states | length > 0 }}"
-            
+
             # Ensure current state of alarm entity is in the selected states
             - condition: template
               value_template: "{{ states(input_alarm_entity) in input_alarm_arm_states }}"
@@ -234,12 +241,10 @@ condition:
         # Case when presence filter is not provided (making it optional)
         - condition: template
           value_template: "{{ input_presence_filter is not defined or input_presence_filter == '' }}"
-        
+
         # Ensure no user is home if presence filter is defined
         - condition: template
           value_template: "{{ (input_presence_filter | select('is_state', 'home') | list | count) == 0 }}"
-
-
 
 action:
   - service: "{{ input_notify_target_app }}"
